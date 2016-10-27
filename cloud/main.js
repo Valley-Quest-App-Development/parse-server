@@ -6,111 +6,111 @@ Parse.Cloud.define('hello', function(req, res) {
 Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	var query = new Parse.Query("QuestGPSSet")
 
-	console.log("Starting to GPS job")
+	console.log("Starting GPS job")
 	console.log("Getting objects...")
 	query.find({
 		success: function(results) {
-			var dictionary = {}; // In format: <String: {start: [], end: []}>
+			// var dictionary = {}; // In format: <String: {start: [], end: []}>
 			
-			console.log("Compiling GPS results...");
+			// console.log("Compiling GPS results...");
 
-			for (i in results) {
-				var result = results[i]
-				var type = result.get("placeType");
-				var loc = result.get("point");
-				var quest = result.get("quest").id;
+			// for (i in results) {
+			// 	var result = results[i]
+			// 	var type = result.get("placeType");
+			// 	var loc = result.get("point");
+			// 	var quest = result.get("quest").id;
 
-				var val = dictionary[quest];
+			// 	var val = dictionary[quest];
 
-				if (type == "start") {
-					if (val == undefined) {
-						dictionary[quest] = {start: [loc], end: []};
-					}else{
-						var start = val.start;
-						start.push(loc);
-						dictionary[quest] = {start: start, end: val.end};
-					}
-				}else{
-					if (val == undefined) {
-						dictionary[quest] = {start: [], end: [loc]};
-					}else{
-						var end = val.end;
-						end.push(loc);
-						dictionary[quest] = {start: val.start, end: end};
-					}
-				}
-			}
+			// 	if (type == "start") {
+			// 		if (val == undefined) {
+			// 			dictionary[quest] = {start: [loc], end: []};
+			// 		}else{
+			// 			var start = val.start;
+			// 			start.push(loc);
+			// 			dictionary[quest] = {start: start, end: val.end};
+			// 		}
+			// 	}else{
+			// 		if (val == undefined) {
+			// 			dictionary[quest] = {start: [], end: [loc]};
+			// 		}else{
+			// 			var end = val.end;
+			// 			end.push(loc);
+			// 			dictionary[quest] = {start: val.start, end: end};
+			// 		}
+			// 	}
+			// }
 
-			console.log(" ---> Complete")
+			// console.log(" ---> Complete")
 
-			var left = Object.keys(dictionary).length
+			// var left = Object.keys(dictionary).length
 			
-			if (left == 0)
-				console.log("No values to use. Done");
-			else
-				console.log(" ---> Averaging and saving...");
+			// if (left == 0)
+			// 	console.log("No values to use. Done");
+			// else
+			// 	console.log(" ---> Averaging and saving...");
 
-			// Now I will remove that ones that don't have enough data and average the rest
-			for (questID in dictionary) {
-				var val = dictionary[questID];
+			// // Now I will remove that ones that don't have enough data and average the rest
+			// for (questID in dictionary) {
+			// 	var val = dictionary[questID];
 
-				if (val == undefined || val.start.length < 2 || val.end.length < 2) {
-					delete dictionary[questID];
-					left -= 1;
-					continue;
-				}
+			// 	if (val == undefined || val.start.length < 2 || val.end.length < 2) {
+			// 		delete dictionary[questID];
+			// 		left -= 1;
+			// 		continue;
+			// 	}
 
-				var totalLat = 0.0
-				var totalLong = 0.0
+			// 	var totalLat = 0.0
+			// 	var totalLong = 0.0
 
-				for (i in val.start) {
-					totalLat += val[i].latitude
-					totalLong += val[i].longitude
-				}
+			// 	for (i in val.start) {
+			// 		totalLat += val[i].latitude
+			// 		totalLong += val[i].longitude
+			// 	}
 
-				var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
+			// 	var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
 
-				totalLat = 0.0
-				totalLong = 0.0
+			// 	totalLat = 0.0
+			// 	totalLong = 0.0
 
-				for (i in val.end) {
-					totalLat += val[i].latitude
-					totalLong += val[i].longitude
-				}
+			// 	for (i in val.end) {
+			// 		totalLat += val[i].latitude
+			// 		totalLong += val[i].longitude
+			// 	}
 
-				var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
+			// 	var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
 
-				if (startAvg.milesTo(endAvg) < 0.1) {
-					// This is an invalid point, as the difference between the start and end is too small
-					// I would really like to delete all the ones that were involved in this one, but that will come later
-					console.log("Found duplicate! Someone was testing!");
-					console.log("TODO: remove duplicates!");
-					continue;
-				}
+			// 	if (startAvg.milesTo(endAvg) < 0.1) {
+			// 		// This is an invalid point, as the difference between the start and end is too small
+			// 		// I would really like to delete all the ones that were involved in this one, but that will come later
+			// 		console.log("Found duplicate! Someone was testing!");
+			// 		console.log("TODO: remove duplicates!");
+			// 		continue;
+			// 	}
 
-				console.log("\t\t\tSaving data...");
-				var query = new Parse.Query("Quest");
-				query.get(quest, {
-					success: function(questObj) {
-						questObj.set("gps_loc", startAvg);
-						questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
-						questObj.save();
-						console.log("\t\t\tdone")
+			// 	console.log("\t\t\tSaving data...");
+			// 	var query = new Parse.Query("Quest");
+			// 	query.get(quest, {
+			// 		success: function(questObj) {
+			// 			questObj.set("gps_loc", startAvg);
+			// 			questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
+			// 			questObj.save();
+			// 			console.log("\t\t\tdone")
 
-						left -= 1;
+			// 			left -= 1;
 
-						if (left <= 0) {
-							console.log(" ---> Done")
-							res.success()
-						}
-					}
-				});
+			// 			if (left <= 0) {
+			// 				console.log(" ---> Done")
+			// 				res.success()
+			// 			}
+			// 		}
+			// 	});
 
-				if (left <= 0) {
-					console.log(" ---> Done")
-					res.success()
-				}
-			}
+			// 	if (left <= 0) {
+			// 		console.log(" ---> Done")
+			// 		res.success()
+			// 	}
+			// }
 		}
 	});
 });
