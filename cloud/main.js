@@ -68,8 +68,8 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 				var totalLong = 0.0
 
 				for (i in val.start) {
-					totalLat += val[i].latitude
-					totalLong += val[i].longitude
+					totalLat += val.start[i].latitude
+					totalLong += val.start[i].longitude
 				}
 
 				var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
@@ -78,8 +78,8 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 				totalLong = 0.0
 
 				for (i in val.end) {
-					totalLat += val[i].latitude
-					totalLong += val[i].longitude
+					totalLat += val.end[i].latitude
+					totalLong += val.end[i].longitude
 				}
 
 				var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
