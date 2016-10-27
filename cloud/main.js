@@ -10,109 +10,108 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	console.log("Getting objects...")
 	query.find({
 		success: function(results) {
-
+			var dictionary = {}; // In format: <String: {start: [], end: []}>
 			
-			// var dictionary = {}; // In format: <String: {start: [], end: []}>
+			console.log("Compiling GPS results...");
+
+			for (i in results) {
+				var result = results[i]
+				var type = result.get("placeType");
+				var loc = result.get("point");
+				var quest = result.get("quest").id;
+
+				var val = dictionary[quest];
+
+				if (type == "start") {
+					if (val == undefined) {
+						dictionary[quest] = {start: [loc], end: []};
+					}else{
+						var start = val.start;
+						start.push(loc);
+						dictionary[quest] = {start: start, end: val.end};
+					}
+				}else{
+					if (val == undefined) {
+						dictionary[quest] = {start: [], end: [loc]};
+					}else{
+						var end = val.end;
+						end.push(loc);
+						dictionary[quest] = {start: val.start, end: end};
+					}
+				}
+			}
+
+			console.log(" ---> Complete")
+			console.log(JSON.stringify(dictionary))
+
+			var left = Object.keys(dictionary).length
 			
-			// console.log("Compiling GPS results...");
+			if (left == 0)
+				console.log("No values to use. Done");
+			else
+				console.log(" ---> Averaging and saving...");
 
-			// for (i in results) {
-			// 	var result = results[i]
-			// 	var type = result.get("placeType");
-			// 	var loc = result.get("point");
-			// 	var quest = result.get("quest").id;
+			// Now I will remove that ones that don't have enough data and average the rest
+			for (questID in dictionary) {
+				var val = dictionary[questID];
 
-			// 	var val = dictionary[quest];
+				if (val == undefined || val.start.length < 2 || val.end.length < 2) {
+					delete dictionary[questID];
+					left -= 1;
+					continue;
+				}
 
-			// 	if (type == "start") {
-			// 		if (val == undefined) {
-			// 			dictionary[quest] = {start: [loc], end: []};
-			// 		}else{
-			// 			var start = val.start;
-			// 			start.push(loc);
-			// 			dictionary[quest] = {start: start, end: val.end};
-			// 		}
-			// 	}else{
-			// 		if (val == undefined) {
-			// 			dictionary[quest] = {start: [], end: [loc]};
-			// 		}else{
-			// 			var end = val.end;
-			// 			end.push(loc);
-			// 			dictionary[quest] = {start: val.start, end: end};
-			// 		}
-			// 	}
-			// }
+				var totalLat = 0.0
+				var totalLong = 0.0
 
-			// console.log(" ---> Complete")
+				for (i in val.start) {
+					totalLat += val[i].latitude
+					totalLong += val[i].longitude
+				}
 
-			// var left = Object.keys(dictionary).length
-			
-			// if (left == 0)
-			// 	console.log("No values to use. Done");
-			// else
-			// 	console.log(" ---> Averaging and saving...");
+				var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
 
-			// // Now I will remove that ones that don't have enough data and average the rest
-			// for (questID in dictionary) {
-			// 	var val = dictionary[questID];
+				totalLat = 0.0
+				totalLong = 0.0
 
-			// 	if (val == undefined || val.start.length < 2 || val.end.length < 2) {
-			// 		delete dictionary[questID];
-			// 		left -= 1;
-			// 		continue;
-			// 	}
+				for (i in val.end) {
+					totalLat += val[i].latitude
+					totalLong += val[i].longitude
+				}
 
-			// 	var totalLat = 0.0
-			// 	var totalLong = 0.0
+				var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
 
-			// 	for (i in val.start) {
-			// 		totalLat += val[i].latitude
-			// 		totalLong += val[i].longitude
-			// 	}
+				if (startAvg.milesTo(endAvg) < 0.1) {
+					// This is an invalid point, as the difference between the start and end is too small
+					// I would really like to delete all the ones that were involved in this one, but that will come later
+					console.log("Found duplicate! Someone was testing!");
+					console.log("TODO: remove duplicates!");
+					continue;
+				}
 
-			// 	var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
+				console.log("\t\t\tSaving data...");
+				var query = new Parse.Query("Quest");
+				query.get(quest, {
+					success: function(questObj) {
+						questObj.set("gps_loc", startAvg);
+						questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
+						questObj.save();
+						console.log("\t\t\tdone")
 
-			// 	totalLat = 0.0
-			// 	totalLong = 0.0
+						left -= 1;
 
-			// 	for (i in val.end) {
-			// 		totalLat += val[i].latitude
-			// 		totalLong += val[i].longitude
-			// 	}
+						if (left <= 0) {
+							console.log(" ---> Done")
+							res.success()
+						}
+					}
+				});
 
-			// 	var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
-
-			// 	if (startAvg.milesTo(endAvg) < 0.1) {
-			// 		// This is an invalid point, as the difference between the start and end is too small
-			// 		// I would really like to delete all the ones that were involved in this one, but that will come later
-			// 		console.log("Found duplicate! Someone was testing!");
-			// 		console.log("TODO: remove duplicates!");
-			// 		continue;
-			// 	}
-
-			// 	console.log("\t\t\tSaving data...");
-			// 	var query = new Parse.Query("Quest");
-			// 	query.get(quest, {
-			// 		success: function(questObj) {
-			// 			questObj.set("gps_loc", startAvg);
-			// 			questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
-			// 			questObj.save();
-			// 			console.log("\t\t\tdone")
-
-			// 			left -= 1;
-
-			// 			if (left <= 0) {
-			// 				console.log(" ---> Done")
-			// 				res.success()
-			// 			}
-			// 		}
-			// 	});
-
-			// 	if (left <= 0) {
-			// 		console.log(" ---> Done")
-			// 		res.success()
-			// 	}
-			// }
+				if (left <= 0) {
+					console.log(" ---> Done")
+					res.success()
+				}
+			}
 		}
 	});
 });
