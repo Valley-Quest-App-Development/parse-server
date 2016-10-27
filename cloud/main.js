@@ -73,12 +73,20 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					totalLong += val[i].longitude
 				}
 
+				var endAvg = new Parse.GeoPoint(totalLat / val.end.length, totalLong / val.end.length)
+
+				if (startAvg.milesTo(endAvg) < 0.1) {
+					// This is an invalid point, as the difference between the start and end is too small
+					// I would really like to delete all the ones that were involved in this one, but that will come later
+					continue;
+				}
+
 				console.log("\t\t\tSaving data...")
 				var query = new Parse.Query("Quest");
 				query.get(quest, {
 					success: function(questObj) {
 						questObj.set("gps_loc", startAvg);
-						questObj.set("gps_end", {latitude: totalLat / val.end.length, longitude: totalLong / val.end.length})
+						questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
 						questObj.save();
 						console.log("\t\t\tdone")
 
