@@ -6,6 +6,8 @@ Parse.Cloud.define('hello', function(req, res) {
 Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	var query = new Parse.Query("QuestGPSSet")
 
+	console.log("Starting to GPS job")
+	console.log("Getting objects...")
 	query.find({
 		success: function(results) {
 			var dictionary = {}; // In format: <String: {start: [], end: []}>
