@@ -10,6 +10,8 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 		success: function(results) {
 			var dictionary = {}; // In format: <String: {start: [], end: []}>
 			
+			console.log("Compiling GPS results...");
+
 			for (i in results) {
 				var result = results[i]
 				var type = result.get("placeType");
@@ -36,6 +38,9 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					}
 				}
 			}
+
+			console.log(" ---> Complete")
+			console.log(" ---> Averaging and saving...");
 
 			var left = Object.keys(dictionary).length
 			// Now I will remove that ones that don't have enough data and average the rest
@@ -66,22 +71,26 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					totalLong += val[i].longitude
 				}
 
+				console.log("\t\t\tSaving data...")
 				var query = new Parse.Query("Quest");
 				query.get(quest, {
 					success: function(questObj) {
 						questObj.set("gps_loc", startAvg);
 						questObj.set("gps_end", {latitude: totalLat / val.end.length, longitude: totalLong / val.end.length})
 						questObj.save();
+						console.log("\t\t\tdone")
 
 						left -= 1;
 
 						if (left <= 0) {
+							console.log(" ---> Done")
 							res.success()
 						}
 					}
 				});
 
 				if (left <= 0) {
+					console.log(" ---> Done")
 					res.success()
 				}
 			}
