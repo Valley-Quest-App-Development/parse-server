@@ -61,7 +61,7 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					continue;
 					console.log("skipping " + questID);
 				}else{
-					console.log("...");
+					console.log(val);
 				}
 
 				var totalLat = 0.0
@@ -71,9 +71,6 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					totalLat += val[i].latitude
 					totalLong += val[i].longitude
 				}
-
-				console.log(totalLat);
-				console.log(totalLong);
 
 				var startAvg = new Parse.GeoPoint(totalLat / val.start.length, totalLong / val.start.length)
 
