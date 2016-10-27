@@ -42,9 +42,14 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 			}
 
 			console.log(" ---> Complete")
-			console.log(" ---> Averaging and saving...");
 
 			var left = Object.keys(dictionary).length
+			
+			if (left == 0)
+				console.log("No values to use. Done");
+			else
+				console.log(" ---> Averaging and saving...");
+
 			// Now I will remove that ones that don't have enough data and average the rest
 			for (questID in dictionary) {
 				var val = dictionary[questID];
