@@ -10,6 +10,8 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	console.log("Getting objects...")
 	query.find({
 		success: function(results) {
+
+			
 			// var dictionary = {}; // In format: <String: {start: [], end: []}>
 			
 			// console.log("Compiling GPS results...");
