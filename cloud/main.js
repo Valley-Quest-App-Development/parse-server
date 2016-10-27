@@ -83,10 +83,12 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 				if (startAvg.milesTo(endAvg) < 0.1) {
 					// This is an invalid point, as the difference between the start and end is too small
 					// I would really like to delete all the ones that were involved in this one, but that will come later
+					console.log("Found duplicate! Someone was testing!");
+					console.log("TODO: remove duplicates!");
 					continue;
 				}
 
-				console.log("\t\t\tSaving data...")
+				console.log("\t\t\tSaving data...");
 				var query = new Parse.Query("Quest");
 				query.get(quest, {
 					success: function(questObj) {
