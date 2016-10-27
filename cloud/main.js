@@ -55,10 +55,13 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 			for (questID in dictionary) {
 				var val = dictionary[questID];
 
-				if (val == undefined || val.start.length < 2 || val.end.length < 2) {
+				if (val == undefined || val.start.length <= 1 || val.end.length <= 1) {
 					delete dictionary[questID];
 					left -= 1;
 					continue;
+					console.log("skipping " + questID);
+				}else{
+					console.log("...");
 				}
 
 				var totalLat = 0.0
@@ -91,7 +94,7 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 
 				console.log("\t\t\tSaving data...");
 				var query = new Parse.Query("Quest");
-				query.get(quest, {
+				query.get(questID, {
 					success: function(questObj) {
 						questObj.set("gps_loc", startAvg);
 						questObj.set("gps_end", {latitude: endAvg.latitude, longitude: endAvg.longitude})
