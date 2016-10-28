@@ -91,8 +91,8 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 				if (val == undefined || val.start.length <= 1 || val.end.length <= 1) {
 					delete dictionary[questID];
 					left -= 1;
-					continue;
 					console.log("skipping " + questID);
+					continue;
 				}else{
 					console.log(val);
 				}
@@ -140,6 +140,9 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 							console.log(" ---> Done")
 							res.success()
 						}
+					}, error: function() {
+						console.log("Encountered error")!
+						left -= 1;
 					}
 				});
 
