@@ -141,7 +141,7 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 							res.success()
 						}
 					}, error: function() {
-						console.log("Encountered error")!
+						console.log("Encountered error!");
 						left -= 1;
 					}
 				});
