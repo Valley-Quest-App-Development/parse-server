@@ -3,6 +3,31 @@ Parse.Cloud.define('hello', function(req, res) {
   res.success('Hi');
 });
 
+function deleteDuplicateGPSObjects(objects) {
+	return new Promise((success, failure) => {
+		Parse.Object.destroyAll(objects, {
+			success: function() {
+				success()
+			}, error: function(error) {
+				// An error occurred while deleting one or more of the objects.
+				// If this is an aggregate error, then we can inspect each error
+				// object individually to determine the reason why a particular
+				// object was not deleted.
+				if (error.code === Parse.Error.AGGREGATE_ERROR) {
+					for (var i = 0; i < error.errors.length; i++) {
+					  console.log("Couldn't delete " + error.errors[i].object.id +
+					    "due to " + error.errors[i].message);
+					}
+				} else {
+					console.log("Delete aborted because of " + error.message);
+				}
+
+				failure(error)
+			}
+		});
+	});
+}
+
 Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	var query = new Parse.Query("QuestGPSSet")
 
@@ -10,7 +35,7 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 	console.log("Getting objects...")
 	query.find({
 		success: function(results) {
-			var dictionary = {}; // In format: <String: {start: [], end: []}>
+			var dictionary = {}; // In format: <String: {start: [], end: [], objects: []}>
 			
 			console.log("Compiling GPS results...");
 
@@ -24,19 +49,27 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 
 				if (type == "start") {
 					if (val == undefined) {
-						dictionary[quest] = {start: [loc], end: []};
+						dictionary[quest] = {start: [loc], end: [], objects: [result]};
 					}else{
 						var start = val.start;
 						start.push(loc);
-						dictionary[quest] = {start: start, end: val.end};
+
+						var objects = val.objects;
+						objects.push(result);
+
+						dictionary[quest] = {start: start, end: val.end, objects: objects};
 					}
 				}else{
 					if (val == undefined) {
-						dictionary[quest] = {start: [], end: [loc]};
+						dictionary[quest] = {start: [], end: [loc], objects: [result]};
 					}else{
 						var end = val.end;
 						end.push(loc);
-						dictionary[quest] = {start: val.start, end: end};
+
+						var objects = val.objects;
+						objects.push(result);
+
+						dictionary[quest] = {start: val.start, end: end, objects: objects};
 					}
 				}
 			}
@@ -88,7 +121,7 @@ Parse.Cloud.afterSave('QuestGPSSet', function(req, res) {
 					// This is an invalid point, as the difference between the start and end is too small
 					// I would really like to delete all the ones that were involved in this one, but that will come later
 					console.log("Found duplicate! Someone was testing!");
-					console.log("TODO: remove duplicates!");
+					deleteDuplicateGPSObjects(val.objects);
 					continue;
 				}
 
